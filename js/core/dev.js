@@ -1,7 +1,7 @@
 'use strict';
   // DEV：開発者向け（DEV_MODE が false なら、DEVボタンごと消える）。各ゲーム専用の DEV 画面は、そのゲームのファイルの中（openXxDev）
 
-  const DEV_MODE = true;                                         // 開発中だけ true。公開版では false（DEVボタンが消えます）
+  const DEV_MODE = (function () { try { return localStorage.getItem('piyo-debug') === '1'; } catch (e) { return false; } })();   // URLに ?debug=1 を付けた端末だけ true（index.html が記録）。付けなければ公開版と同じ（DEVボタンなし）
 
   // ---------------------------------------------------------------------
   //  DEVメニュー（DEV_MODE が true のときだけ、右上に小さなDEVボタンが出ます）
