@@ -1,0 +1,26 @@
+name: ゲーム一式ZIPを作る
+
+# GitHubの「Actions」タブ → このワークフロー → 「Run workflow」で実行します。
+# できあがったZIPは、リポジトリの「Releases」から、スマホでもダウンロードできます。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZIPを作る
+        run: |
+          mkdir -p out
+          zip -r -q out/piyo-game.zip . -x ".git/*" ".github/*" "out/*"
+          ls -lh out
+      - name: Releaseに載せる
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: zip-${{ github.run_number }}
+          name: ゲーム一式ZIP (${{ github.run_number }}回目)
+          files: out/piyo-game.zip

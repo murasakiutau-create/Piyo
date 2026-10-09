@@ -1,0 +1,1171 @@
+/* 新レトロ丸ゴシック（SIL Open Font License。ライセンスは assets/fonts/OFL.txt） */
+@font-face {
+  font-family: "ShinRetroMaruGothic";
+  src: url("assets/fonts/ShinRetroMaruGothic-R.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ShinRetroMaruGothic";
+  src: url("assets/fonts/ShinRetroMaruGothic-B.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #0d0b1e;
+  --frame: #2b1d4f;
+  --gold: #ffd040;
+  --gold-dark: #b06a10;
+  --ink: #fff4d0;
+  --cyan: #5ce8ff;
+  /* 文章として読む日本語（あそびかた・説明・確認文・店内案内）は、新レトロ丸ゴシック。ゲーム画面は、ドットフォントのまま。
+     フォントを変えたいときは、下の @font-face か、この1行を差し替えるだけです */
+  --font-text: "ShinRetroMaruGothic", "Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  --font-pixel: "DotGothic16", "PixelMplus10", "MS Gothic", "Osaka-Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 8px 8px;
+  color: var(--ink);
+  font-family: var(--font-text);          /* HTMLの日本語は、新レトロ丸ゴシックに統一（ゲーム画面のドット文字は、キャンバスで描いているので そのまま） */
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+#stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+/* canvas と同じ大きさの枠。ブラウン管風の走査線を重ねる */
+.screen {
+  position: relative;
+  flex: none;
+}
+
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.14) 3px
+  );
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
+  cursor: pointer;
+  border: 4px solid var(--frame);
+  box-shadow: 0 0 0 4px #120a26, 0 0 0 8px var(--gold-dark);
+}
+
+/* ---- ドット風ボタン ---- */
+.pixel-btn {
+  border: none;
+  border-radius: 0;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 4px 0 0 #6a3c08,
+    4px 0 0 0 #6a3c08,
+    -4px 0 0 0 #6a3c08,
+    0 -4px 0 0 #6a3c08;
+}
+
+.pixel-btn:active {
+  transform: translateY(2px);
+}
+
+.pixel-btn:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 6px;
+}
+
+/* テレビ下のメッセージ欄（日本語） */
+.tv-msg {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  overflow: hidden;
+  font-family: var(--font-text);
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--ink);
+  text-shadow: 1px 1px 0 #000;
+  pointer-events: none;
+  -webkit-font-smoothing: none;
+  z-index: 1;
+}
+
+.retry-btn {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  display: none;
+  padding: 10px 18px;
+  background: var(--gold);
+  color: #3a1d00;
+  font-size: 1rem;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.retry-btn:active {
+  transform: translate(-50%, 2px);
+}
+
+.retry-btn.is-show {
+  display: block;
+}
+
+#bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 4px 12px 10px;
+}
+
+.hint {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 244, 208, 0.75);
+}
+
+.sound-btn {
+  min-width: 64px;
+  padding: 6px 10px;
+  background: #3a2a6a;
+  color: var(--ink);
+  font-size: 0.85rem;
+  box-shadow:
+    0 3px 0 0 #160c30,
+    3px 0 0 0 #160c30,
+    -3px 0 0 0 #160c30,
+    0 -3px 0 0 #160c30;
+}
+
+/* ---- 席を立つボタン ---- */
+.stand-btn {
+  min-width: 72px;
+  white-space: nowrap;
+  padding: 6px 10px;
+  background: #6a3a8a;
+  color: var(--ink);
+  font-size: 0.85rem;
+  box-shadow:
+    0 3px 0 0 #2a1040,
+    3px 0 0 0 #2a1040,
+    -3px 0 0 0 #2a1040,
+    0 -3px 0 0 #2a1040;
+}
+
+.stand-btn[hidden] {
+  display: none;
+}
+
+/* ---- ダイアログ（メダル貸出機・確認・結果） ---- */
+.dialog {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(5, 3, 12, 0.72);
+  z-index: 3;
+}
+
+.dialog.is-show {
+  display: flex;
+}
+
+.dialog-card {
+  width: min(100%, 300px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 14px 14px 16px;
+  background: #1a1236;
+  border: 3px solid var(--gold-dark);
+  box-shadow: 0 0 0 3px #120a26;
+  text-align: center;
+}
+
+.dialog.is-wide .dialog-card {
+  width: min(100%, 340px);
+}
+
+.dialog-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+.dialog-body p {
+  margin: 0 0 6px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.dialog-body .big {
+  font-size: 1rem;
+  color: #fff8e8;
+}
+
+.dialog-body .gold {
+  color: var(--gold);
+}
+
+.dialog-body .dim {
+  color: rgba(255, 244, 208, 0.55);
+  font-size: 0.78rem;
+}
+
+.dialog-body .head {
+  margin-top: 10px;
+  color: var(--cyan);
+}
+
+.dialog-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.dlg-btn {
+  padding: 9px 12px;
+  background: #3a2a6a;
+  color: var(--ink);
+  font-size: 0.92rem;
+  box-shadow:
+    0 3px 0 0 #160c30,
+    3px 0 0 0 #160c30,
+    -3px 0 0 0 #160c30,
+    0 -3px 0 0 #160c30;
+}
+
+.dlg-btn.is-primary {
+  background: var(--gold);
+  color: #3a1d00;
+  box-shadow:
+    0 3px 0 0 #6a3c08,
+    3px 0 0 0 #6a3c08,
+    -3px 0 0 0 #6a3c08,
+    0 -3px 0 0 #6a3c08;
+}
+
+.dlg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- お知らせ（NEW RECORD など）：ふわっと出て消える ---- */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  max-width: 90%;
+  padding: 6px 12px;
+  background: rgba(26, 18, 54, 0.92);
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.toast.is-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---- ハムちゃん危機一髪！のボタン（画面の上に重ねています） ---- */
+.ham-btn {
+  position: absolute;
+  z-index: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 6px;
+  line-height: 1.15;
+}
+
+.ham-btn.is-show {
+  display: flex;
+}
+
+.ham-btn .ham-main {
+  font-size: 1.25em;
+  letter-spacing: 0.06em;
+}
+
+.ham-btn .ham-sub {
+  font-size: 0.82em;
+  opacity: 0.92;
+}
+
+.ham-start {
+  background: var(--gold);
+  color: #3a1d00;
+}
+
+.ham-start.is-off {
+  background: #5a4a38;
+  color: #b8a890;
+}
+
+.ham-stop {
+  background: #2f8a5a;
+  color: #ffffff;
+  box-shadow:
+    0 4px 0 0 #123a24,
+    4px 0 0 0 #123a24,
+    -4px 0 0 0 #123a24,
+    0 -4px 0 0 #123a24;
+}
+
+.ham-go {
+  background: #d8402a;
+  color: #ffffff;
+  box-shadow:
+    0 4px 0 0 #5a1408,
+    4px 0 0 0 #5a1408,
+    -4px 0 0 0 #5a1408,
+    0 -4px 0 0 #5a1408;
+  animation: ham-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes ham-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ham-go {
+    animation: none;
+  }
+}
+
+/* ---- 閉店・開店の演出の文字（画面の上に重ねています） ---- */
+.seq-text {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 36%;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  color: #fff4d0;
+  pointer-events: none;
+  z-index: 1;
+  text-shadow: 2px 2px 0 #1a1030;
+}
+
+.seq-text.is-show {
+  display: flex;
+}
+
+.seq-big {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.seq-md {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.seq-text.is-top {
+  top: 26%;
+}
+
+.seq-sm {
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+}
+
+.seq-gold {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* ---- タイトル画面 ---- */
+.title-screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12%;
+  z-index: 2;
+  text-align: center;
+  color: #fff4d0;
+  text-shadow: 2px 2px 0 #1a1030;
+}
+
+.title-screen.is-show {
+  display: flex;
+}
+
+.title-logo {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffd0ec;
+  text-shadow: 3px 3px 0 #7a2a5a, 0 0 18px rgba(255, 92, 168, 0.6);
+}
+
+.title-sub {
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  color: #9fe8ff;
+}
+
+.title-menu {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 9%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title-btn {
+  padding: 12px 8px;
+  font-family: inherit;
+  font-size: 1.05rem;
+  color: #fff4d0;
+  background: #3a2a60;
+  border: 3px solid #8a7ac8;
+  cursor: pointer;
+}
+
+.title-btn.is-primary {
+  color: #3a2a00;
+  background: var(--gold);
+  border-color: #fff3b0;
+}
+
+/* ---- 開発用のボタン（DEV_MODE のときだけ表示） ---- */
+.dev-btn {
+  position: fixed;
+  top: 4px;
+  right: 4px;
+  z-index: 50;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: #9fe8ff;
+  background: rgba(10, 6, 20, 0.7);
+  border: 1px solid #4a3486;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+/* ---- 文章として読む日本語は、新レトロ丸ゴシック ---- */
+.dialog-body,
+.toast,
+.seq-md,
+.seq-sm {
+  font-family: var(--font-text);
+}
+
+/* ---- あそびかた（昔のゲーセンの、筐体に貼ってある説明カード） ---- */
+.dialog.is-card .dialog-card {
+  width: min(100%, 320px);
+  max-height: 92%;
+  background: #f6ecc8;
+  border: 4px solid #8a2a3a;
+  box-shadow: 0 0 0 3px #f6ecc8, 0 0 0 6px #8a2a3a;
+  color: #3a2410;
+}
+
+.dialog.is-card .dialog-title {
+  color: #8a2a3a;
+  font-family: var(--font-text);
+  text-align: center;
+  letter-spacing: 0.2em;
+  border-bottom: 3px double #8a2a3a;
+  padding-bottom: 4px;
+}
+
+.dialog.is-card .dialog-body p {
+  color: #3a2410;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.dialog.is-card .dialog-body .head {
+  color: #8a2a3a;
+  font-weight: 700;
+  margin-top: 8px;
+  border-bottom: 1px dashed #b88a6a;
+}
+
+.dialog.is-card .dialog-body .gold {
+  color: #b05a10;
+  font-weight: 700;
+}
+
+.dialog.is-card .dialog-body .dim {
+  color: #7a6a58;
+}
+
+.dialog-body .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dialog.is-card .dialog-body .row span:last-child {
+  font-weight: 700;
+  text-align: right;
+}
+
+.dialog.is-card .dialog-body .need {
+  color: #3a2410;
+  background: #ffe9a0;
+  padding: 2px 6px;
+}
+
+/* ---- 下のバー：ボタンが3つになっても、ヒントが切れないように ---- */
+#bar {
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+#bar .hint {
+  flex: 1 1 100%;
+  text-align: center;
+}
+
+#bar .stand-btn,
+#bar .sound-btn {
+  flex: 0 0 auto;
+}
+
+.dialog.is-card .dialog-body .row span:first-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+.dialog.is-card .dialog-body .need span:last-child {
+  font-weight: 400;
+  font-size: 0.78rem;
+}
+
+/* ---- フォントの統一：ボタン・入力欄など、ブラウザ標準のフォントが残らないように ---- */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* ---- DUCK RACE ワイド試作：下のバーも、広くなった画面幅に合わせて、ボタンを等間隔・少し大きめに ---- */
+body.wide-mode #bar {
+  gap: 10px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+body.wide-mode #bar .stand-btn,
+body.wide-mode #bar .sound-btn {
+  flex: 1 1 0;
+  max-width: 150px;
+  text-align: center;
+}
+
+/* ---- B1 クレーンゲーム：画面の上に重ねる、日本語のボタン（新レトロ丸ゴシック） ---- */
+.cr-btn {
+  position: absolute;
+  display: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 2px solid #1a1a30;
+  border-radius: 4px;
+  font-family: var(--font-text);
+  font-weight: 700;
+  color: #2a1a00;
+  background: #ffd93a;
+  box-shadow: inset 0 -4px 0 #b07a08, inset 0 2px 0 #fff3b0;
+  touch-action: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cr-btn.is-show {
+  display: block;
+}
+
+#cr-side {
+  background: #5ac8ff;
+  color: #04202a;
+  box-shadow: inset 0 -3px 0 #2a88b8, inset 0 2px 0 #bfeaff;
+}
+
+#cr-yoko,
+#cr-oku {
+  background: #7dff8a;
+  color: #052a14;
+  box-shadow: inset 0 -4px 0 #1a8a48, inset 0 2px 0 #c8ffd0;
+}
+
+.cr-btn.is-on {
+  filter: brightness(1.2);
+  transform: translateY(2px);
+}
+
+.cr-btn.is-off {
+  background: #3a3050;
+  color: #7a6a90;
+  box-shadow: inset 0 -3px 0 #1a1228;
+}
+
+/* ---- 景品棚（PRIZE SHELF）：画面の上に重ねる、もどるボタンと、景品の名前・RECORD ---- */
+.sh-back {
+  background: #c8905a;
+  color: #2a1204;
+  box-shadow: inset 0 -4px 0 #7a4a22, inset 0 2px 0 #f0c898;
+}
+
+.prize-info {
+  position: absolute;
+  display: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  color: #ffe9c0;
+  font-family: var(--font-text);
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.prize-info.is-show {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2em;
+}
+
+.prize-info .pi-name {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: #fff3d0;
+  text-shadow: 0 2px 0 #4a2a10;
+}
+
+.prize-info .pi-rec {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #ffd890;
+}
+
+.prize-info .pi-rec b {
+  font-size: 1.25em;
+  color: #fff0b0;
+}
+
+.prize-info .pi-line {
+  font-size: 1em;
+  color: #e8c898;
+}
+
+.prize-info .pi-from {
+  font-size: 0.95em;
+  color: #b8987a;
+  letter-spacing: 0.06em;
+}
+
+.prize-info .pi-empty {
+  font-size: 1.1em;
+  color: #c8a47a;
+}
+
+/* ---- HAPPY BEAT：画面の上に重ねるボタン（新レトロ丸ゴシック） ---- */
+.hb-diff {
+  color: #1a1030;
+  background: #5a4a80;
+  box-shadow: inset 0 -3px 0 #2a2048;
+  color: #d8ccf0;
+}
+
+.hb-easy.is-on {
+  background: #7dff8a;
+  color: #052a14;
+  box-shadow: inset 0 -3px 0 #1a8a48, inset 0 2px 0 #c8ffd0;
+}
+
+.hb-normal.is-on {
+  background: #ffe070;
+  color: #3a2a00;
+  box-shadow: inset 0 -3px 0 #b08a10, inset 0 2px 0 #fff3b0;
+}
+
+.hb-hard.is-on {
+  background: #ff6a8a;
+  color: #3a0014;
+  box-shadow: inset 0 -3px 0 #b01a40, inset 0 2px 0 #ffc0d0;
+}
+
+.hb-go {
+  background: #ff7ac0;
+  color: #2a0a1e;
+  box-shadow: inset 0 -4px 0 #b02a7a, inset 0 2px 0 #ffc8e8;
+}
+
+.hb-sub {
+  background: #62d6ff;
+  color: #04202a;
+  box-shadow: inset 0 -3px 0 #2a88b8, inset 0 2px 0 #bfeaff;
+}
+
+.hb-quit {
+  background: #3a2a60;
+  color: #c8b8f0;
+  box-shadow: inset 0 -2px 0 #1a1230;
+  opacity: 0.85;
+}
+
+.hb-arrow {
+  background: #3a2a60;
+  color: #ffffff;
+  box-shadow: inset 0 -3px 0 #1a1230;
+}
+
+/* ---- スキップ：一瞬の暗転（演出を打ち切って、明るくなったら 1F） ---- */
+#skip-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: #000000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+#skip-fade.is-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- 移動の暗転（階の移動・筐体に入る／出る） ---- */
+#move-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  background: #000000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+#move-fade.is-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- フロア画面の、いちばん上のヘッダー（DAY・YEN・MEDAL）：茶色い枠の外に置く ---- */
+#stage {
+  flex-direction: column;
+}
+
+.floor-header {
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  margin-bottom: 14px;
+  padding: 0 12px;
+  background: #120a24;
+  border: 2px solid #4a3486;
+  font-family: var(--font-pixel);
+  color: #ffffff;
+  visibility: hidden;
+}
+
+.floor-header.is-show {
+  visibility: visible;
+}
+
+.fh-day {
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 2px 2px 0 #2a1a40;
+}
+
+.fh-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 46%;
+}
+
+.fh-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.fh-row i {
+  font-style: normal;
+  color: #8a7ac8;
+}
+
+.fh-row b {
+  font-weight: 400;
+}
+
+.fh-yen {
+  color: #ffe9a0;
+}
+
+.fh-medal {
+  color: #ffd040;
+}
+
+/* ---- SPARK TAP：小さなボタン・練習の説明 ---- */
+.st-small {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+.st-say {
+  align-items: center;
+  text-align: center;
+  color: #cfe8ff;
+  font-weight: 700;
+}
+
+/* ---- KAWAII CLUB：説明の文字は、ピンクがかった色で読みやすく ---- */
+.kc-say {
+  color: #b0507a;
+  text-shadow: none;
+  font-weight: 700;
+}
+
+/* ---- TOP DRIVER：スタートは、赤 ---- */
+.td-go {
+  background: #e8302a;
+  color: #ffffff;
+  box-shadow: inset 0 -4px 0 #9a1410, inset 0 2px 0 #ff9a8a;
+}
+
+.td-hint {
+  align-items: center;
+  text-align: center;
+  color: #c8d0f0;
+  font-weight: 700;
+}
+
+/* ---- 休憩コーナー（自販機）：商品ボタンは、絵の上にかさねる（名前と値段だけ、下に出す） ---- */
+.vm-item {
+  position: absolute;
+  display: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0 3% 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #ffffff;
+  font-family: var(--font-text);
+  font-weight: 700;
+  line-height: 1.15;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+}
+
+.vm-item.is-show {
+  display: flex;
+}
+
+.vm-item.is-off {
+  opacity: 0.55;
+}
+
+.vm-item:active {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.vm-price {
+  color: #ffd84a;
+}
+
+.vm-say {
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.vm-got {
+  color: #ffd84a;
+  margin-bottom: 6px;
+}
+
+.vm-line {
+  line-height: 1.5;
+}
+
+/* ---- 自販機の正面：商品の名前と値段は、自販機の窓の中（商品見本と丸ボタンのあいだ）に出す ---- */
+.vm-item {
+  justify-content: flex-start;
+  color: #12306a;
+}
+
+.vm-item.vm-ice {
+  color: #3a2a44;
+}
+
+.vm-price {
+  color: #d02030;
+}
+
+.vm-take {
+  background: transparent;
+  border-color: transparent;
+}
+
+.vm-item:active {
+  background: rgba(255, 216, 74, 0.2);
+}
+
+/* ---- ガチャガチャ・シール帳 ---- */
+.gc-pop {
+  align-items: center;
+  text-align: center;
+  color: #7a2a1a;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.gc-pop1 {
+  font-size: 0.8em;
+  letter-spacing: 0.04em;
+}
+
+.gc-pop2 {
+  color: #d02030;
+}
+
+.gc-say {
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.bk-say {
+  align-items: center;
+  text-align: center;
+  color: #5a3a1a;
+  font-weight: 700;
+}
+
+.bk-name {
+  color: #b02030;
+}
+
+.bk-line {
+  line-height: 1.5;
+}
+
+/* ---- BASKET RUSH：最初だけの ひとこと ---- */
+.br-hint {
+  align-items: center;
+  text-align: center;
+  color: #ffe070;
+  font-weight: 700;
+  text-shadow: 0 0 4px #000000;
+}
+
+/* ---- AIR SMASH：開発用のレベル選択ボタン（DEV_MODE のときだけ） ---- */
+.as-lv {
+  padding: 0;
+  font-weight: 700;
+}
+
+/* 階へもどるボタンは使わない（席を立つ で もどる） */
+#as-out, #br-out, #bc-out, #bd-out, #bg-out, #jc-out, #kc-out, #nb-out, #pp-out, #sa-out, #sz-out, #tt-out { display: none; }
+
+/* 起動中の画面（さいしょの1コマが描けるまで）：ドット文字と、ゆっくり進むバー（点滅なし） */
+.boot {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--bg);
+  border: 4px solid var(--frame);
+  box-sizing: border-box;
+}
+
+.boot-art,
+.boot-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.boot-dot {
+  display: block;
+  max-width: 92%;
+  image-rendering: pixelated;
+}
+
+.boot-bar {
+  width: 56%;
+  height: 8px;
+  border: 2px solid var(--gold-dark);
+  background: #1a1236;
+  overflow: hidden;
+}
+
+.boot-bar i {
+  display: block;
+  height: 100%;
+  width: 4%;
+  background: var(--gold);
+  animation: boot-fill 12s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+.boot.is-failed .boot-bar {
+  display: none;
+}
+
+.boot-jp {
+  margin: 4px 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink);
+}
+
+.boot-reload {
+  margin-top: 6px;
+  padding: 10px 22px;
+}
+
+@keyframes boot-fill {
+  from { width: 4%; }
+  to { width: 92%; }
+}
+
+/* ---- NINE BREAK（7F）：ルール説明の日本語ボックス ---- */
+.nk-say {
+  position: absolute;
+  display: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 4px;
+  border: 2px solid #7affc8;
+  border-radius: 4px;
+  background: rgba(2, 14, 8, 0.82);
+  color: #f0fff4;
+  font-family: var(--font-text);
+  font-weight: 700;
+  line-height: 1.55;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nk-say.is-show {
+  display: block;
+}
+
+.nk-say.mh-say {
+  border: 0;
+  border-top: 1px solid #5a4a6a;
+  border-radius: 0;
+  background: rgba(6, 4, 10, 0.74);
+  color: #e8dcc8;
+  padding: 4px 4px;
+}
+
+.nk-say .nk-dim {
+  color: #9fd8c0;
+  font-size: 0.82em;
+}
