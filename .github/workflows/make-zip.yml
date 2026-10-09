@@ -4,6 +4,9 @@ name: ゲーム一式ZIPを作る
 # できあがったZIPは、リポジトリの「Releases」から、スマホでもダウンロードできます。
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/make-zip.yml']   # このファイルを直したときも1回だけ動く(動作確認用)
 
 permissions:
   contents: write
